@@ -63,7 +63,7 @@ python optimal.py my_dataset.csv my_plot --sampletypeinitial M MW MS --peptide_t
 This command will generate a boxplot visualization of enriched samples based on the provided dataset with specified parameters.
 
 ## Additional Notes
-- For any issues or questions, please refer to the package documentation or contact the package maintainers  **gyasifred@gmail.com**.
+- For any issues or questions, please refer to the package documentation or contact the package maintainers  **gyasifred@gmail.com** or contact directly `Emmanuel Agyei Frimpong`**kojomiguel@gmail.com** 
 
 
   
