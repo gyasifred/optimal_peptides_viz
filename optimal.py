@@ -14,18 +14,17 @@ if __name__ == "__main__":
 
     # Initialize the argument parser
     parser = argparse.ArgumentParser(
-        description="Generates a Boxplot Visualization of Enchriched Peptides")
+        description="Generates a Boxplot Visualization of Enriched Peptides")
 
     # Add command-line arguments
     parser.add_argument("file", type=str, help="Input TSV or CSV file path")
-    parser.add_argument("outputName", type=str,
-                        help="Name to save the output file")
+    parser.add_argument("outputName", type=str, help="Name to save the output file")
     parser.add_argument("output_path", type=str, nargs='?', default=os.getcwd(),
                         help="Output PDF plot file path. Default is the current directory.")
     parser.add_argument("--sampletypeinitial", type=str, nargs='+', default=["M", "MW", "MS"],
                         help="List of initial sample types to include in the plot")
-    parser.add_argument("--peptide_threshold", type=float,
-                        default=10, help="Threshold for filtering Enriched Peptides")
+    parser.add_argument("--peptide_threshold", type=float, default=10,
+                        help="Threshold for filtering Enriched Peptides")
     parser.add_argument("--figsize", type=int, nargs=2, default=(6, 4),
                         help="Figure size (width and height) for the plot")
     parser.add_argument("--verbose", action="store_true", default=False,
@@ -34,6 +33,8 @@ if __name__ == "__main__":
                         default="minus", help="Operation to perform between sample types.")
     parser.add_argument("--reverse", action="store_true", default=False,
                         help="Reverse the operation order (e.g., col2 - col1 instead of col1 - col2).")
+    parser.add_argument("--log2", action="store_true", default=False,
+                        help="Apply log base 2 transformation to the data.")
 
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -51,11 +52,9 @@ if __name__ == "__main__":
 
         # Read data from TSV or CSV file based on the file extension
         if args.file.lower().endswith('.tsv'):
-            df = pd.read_csv(args.file, sep='\t',
-                             index_col=0, encoding="utf-8")  # Read TSV file
+            df = pd.read_csv(args.file, sep='\t', index_col=0, encoding="utf-8")  # Read TSV file
         elif args.file.lower().endswith('.csv'):
-            df = pd.read_csv(args.file, index_col=0,
-                             encoding="utf-8")  # Read CSV file
+            df = pd.read_csv(args.file, index_col=0, encoding="utf-8")  # Read CSV file
         else:
             raise ValueError("Input file must be a TSV or CSV file.")
 
@@ -63,6 +62,11 @@ if __name__ == "__main__":
         for col in df.columns:
             if not np.issubdtype(df[col].dtype, np.number):
                 df[col] = df[col].astype(float)
+
+        # Apply log base 10 transformation if --log2 is specified
+        if args.log2:
+            df = np.log2(df + 1)  # Adding 1 to avoid log(0)
+            args.peptide_threshold = np.log2(args.peptide_threshold + 1)
 
     except Exception as e:
         print(f"Error reading or processing file: {e}")
@@ -84,8 +88,7 @@ if __name__ == "__main__":
 
     # Filter columns based on sample type initials provided
     for sample in samples.values():
-        columns = [col for col in sample if col.split(
-            "-")[1].split("_")[0] in args.sampletypeinitial]
+        columns = [col for col in sample if col.split("-")[1].split("_")[0] in args.sampletypeinitial]
         filtered_columns.append(columns)
 
     enriched_peptides_df = {}  # Initialize a dictionary for enriched peptides data
@@ -96,8 +99,7 @@ if __name__ == "__main__":
         for sample_type in sample:
             peptides = df.index[df[sample_type] >= args.peptide_threshold]
             enriched_peptides.update(peptides)
-        enriched_peptides_df[sample[0].split(
-            "-")[0]] = df.loc[list(enriched_peptides), sample]
+        enriched_peptides_df[sample[0].split("-")[0]] = df.loc[list(enriched_peptides), sample]
 
     sample_type_diff_dfs = {}  # Initialize a dictionary for sample type differences
 
@@ -142,8 +144,7 @@ if __name__ == "__main__":
     for sample, df in sample_type_diff_dfs.items():
         index_col_name = df.index.name
         df.reset_index(inplace=True)
-        df_melted = pd.melt(
-            df, id_vars=[index_col_name], var_name='Sample Type', value_name='Z-scores')
+        df_melted = pd.melt(df, id_vars=[index_col_name], var_name='Sample Type', value_name='Z-scores')
         df_melted['samples'] = sample
         dfs.append(df_melted)
 
@@ -157,26 +158,20 @@ if __name__ == "__main__":
     sns.boxplot(x=combined_df['samples'], y=combined_df['Z-scores'],
                 hue=combined_df['Sample Type'], ax=ax, width=0.8)
 
+
     ax.axhline(args.peptide_threshold, color='red', linestyle='--',
                label=f'Zscore Threshold-{args.peptide_threshold}')  # Add threshold line
 
     ax.set_xlabel("Samples", fontsize=15)  # Set x-axis label
     ax.set_ylabel("Z-Scores", fontsize=15)  # Set y-axis label
-    # Rotate x-axis labels for better visibility
-    plt.xticks(rotation=30, ha="right", fontsize=12)
-    plt.title(
-        "Boxplot of Enriched Peptides", fontsize=15)  # Set plot title
-    # Add legend to the plot
-    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    plt.xticks(rotation=30, ha="right", fontsize=12)  # Rotate x-axis labels for better visibility
+    plt.title("Boxplot of Enriched Peptides", fontsize=15)  # Set plot title
+    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))  # Add legend to the plot
 
-    output_file_path = os.path.join(
-        args.output_path, f"{args.outputName}.pdf")  # Define output file path
-    # Save the plot as a PDF
-    plt.savefig(output_file_path, dpi=300, bbox_inches="tight")
+    output_file_path = os.path.join(args.output_path, f"{args.outputName}.pdf")  # Define output file path
+    plt.savefig(output_file_path, dpi=300, bbox_inches="tight")  # Save the plot as a PDF
 
     if args.verbose:  # If verbose mode is enabled, print plot save status
         print(f"Plot saved to: {output_file_path}")
 
-    if args.verbose:  # If verbose mode is enabled, display the plot
-        print("Displaying plot...")
-        plt.show()
+    plt.show()
