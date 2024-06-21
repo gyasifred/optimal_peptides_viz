@@ -57,7 +57,7 @@ To use the `optimal_peptides_viz` package, follow these steps:
 
 7. **Example Command:**
 ```bash
-python optimal.py my_dataset.csv my_plot --sampletypeinitial M MW MS --peptide_threshold 10 --figsize 8 6 --verbose --operator diff --reverse
+python optimal.py my_dataset.csv my_plot --sampletypeinitial M MW MS --peptide_threshold 10 --figsize 8 6 --verbose --operator diff --reverse --log2
 ```
 
 This command will generate a boxplot visualization of enriched samples based on the provided dataset with specified parameters.
